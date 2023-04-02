@@ -8,15 +8,15 @@ import traceon.plotting as P
 import traceon.tracing as T
 
 # Dimensions of the einzel lens.
-THICKNESS = 0.5
-SPACING = 0.5
-RADIUS = 0.15
+THICKNESS = 1
+SPACING = 2
+RADIUS = 1.5
 
 # Start value of z chosen such that the middle of the einzel
 # lens is at z = 0mm.
-z0 = -THICKNESS - SPACING - THICKNESS/2
+z0 = -2.5
 
-with G.MEMSStack(z0=z0, size_from_distance=True) as geom:
+with G.MEMSStack(z0=z0, size_from_distance=True, rmax= 10) as geom:
     
     # Einzel lens consists of three electrodes: 
     # a lens electrode sandwiched between two ground electrodes.
@@ -38,7 +38,7 @@ P.plot_line_mesh(mesh.mesh, ground='green', lens='blue')
 excitation = E.Excitation(mesh)
 
 # Excite the geometry, put ground at 0V and the lens electrode at 1000V.
-excitation.add_voltage(ground=0.0, lens=1000)
+excitation.add_voltage(ground=0.0, lens=-3000)
 
 # Use the Boundary Element Method (BEM) to calculate the surface charges,
 # the surface charges gives rise to a electrostatic field.
@@ -48,12 +48,13 @@ field = S.solve_bem(excitation)
 # trajectories is inherently slow. Instead, use an interpolation technique
 # in which we use the derivatives of the potential along the potential axis.
 # The complicated mathematics are all abstracted away from the user.
-field_axial = field.axial_derivative_interpolation(-2, 2, 150)
+interpRange = 10
+field_axial = field.axial_derivative_interpolation(-interpRange, interpRange, 150)
 
 # Plot the potential along the optical axis to show that the interpolated
 # potential is very close to the potential found by an integration over the
 # surface charge.
-z = np.linspace(-2, 2, 150)
+z = np.linspace(-interpRange, interpRange, 150)
 pot = [field.potential_at_point(np.array([0.0, z_])) for z_ in z]
 pot_axial = [field_axial.potential_at_point(np.array([0.0, z_])) for z_ in z]
 
@@ -68,14 +69,15 @@ plt.show()
 # An instance of the tracer class allows us to easily find the trajectories of 
 # electrons. Here we specify that the interpolated field should be used, and that
 # the tracing should stop if the r value goes outside ±RADIUS/2 or the z value outside ±10 mm.
-tracer = T.Tracer(field_axial, ((-RADIUS/2, RADIUS/2), (-10, 10)) )
+traceRange = 100
+tracer = T.Tracer(field_axial, ((-RADIUS/2, RADIUS/2), (-traceRange, 10)) )
 
 # Start tracing from z=7mm
 r_start = np.linspace(-RADIUS/5, RADIUS/5, 7)
 
 # Initial velocity vector points downwards, with a 
 # initial speed corresponding to 1000eV.
-velocity = T.velocity_vec(1000, [0, -1])
+velocity = T.velocity_vec(10000, [0, -1])
 
 plt.figure()
 plt.title('Electron traces')
